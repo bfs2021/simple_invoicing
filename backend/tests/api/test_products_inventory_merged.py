@@ -251,6 +251,97 @@ class TestCSVImport:
         assert data["created"] == 0
         assert len(data["errors"]) > 0
 
+    def test_import_csv_bad_stock_cell_errors_and_keeps_stock(self, client):
+        """An unreadable stock cell must error, not silently zero the inventory (Issue #556)."""
+        _create_product(client, "IMP010", "Stock Keeper", price=10, initial_quantity=7)
+        csv_content = (
+            "Item Name,Item Code,Selling Price,Current Stock\n"
+            "Stock Keeper,IMP010,12,ten\n"
+        )
+        res = client.post(
+            "/api/products/import-csv",
+            files={"file": ("test.csv", csv_content.encode("utf-8"), "text/csv")},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["created"] == 0
+        assert data["updated"] == 0
+        assert data["errors"] == [{"row": 2, "message": "Invalid Current Stock for IMP010"}]
+
+        # Nothing in the failed row was applied: stock and selling price unchanged
+        item = client.get("/api/products/with-inventory?search=Stock Keeper").json()["items"][0]
+        assert item["current_stock"] == 7
+        assert item["selling_price"] == 10
+
+    @pytest.mark.parametrize("header,cell,message", [
+        ("Tax", "150", "Invalid Tax for IMP011"),
+        ("Tax", "eighteen", "Invalid Tax for IMP011"),
+        ("Tax", "nan", "Invalid Tax for IMP011"),
+        ("Current Stock", "ten", "Invalid Current Stock for IMP011"),
+        ("Current Stock", "-5", "Invalid Current Stock for IMP011"),
+        ("Current Stock", "nan", "Invalid Current Stock for IMP011"),
+        ("Current Stock", "inf", "Invalid Current Stock for IMP011"),
+        ("Purchase Price", "three", "Invalid Purchase Price for IMP011"),
+        ("Purchase Price", "-1", "Invalid Purchase Price for IMP011"),
+        ("Reorder Level", "-2", "Invalid Reorder Level for IMP011"),
+    ])
+    def test_import_csv_unreadable_cell_errors(self, client, header, cell, message):
+        """Bad tax/stock/purchase/reorder cells error their row instead of coercing to 0 (Issue #556)."""
+        csv_content = (
+            f"Item Name,Item Code,Selling Price,{header}\n"
+            f"Cell A,IMP011,10,{cell}\n"
+        )
+        res = client.post(
+            "/api/products/import-csv",
+            files={"file": ("test.csv", csv_content.encode("utf-8"), "text/csv")},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["created"] == 0
+        assert data["updated"] == 0
+        assert data["errors"] == [{"row": 2, "message": message}]
+
+    def test_import_csv_tax_percent_and_empty_cells(self, client):
+        """'18%' imports as 18; empty optional cells still mean 0 / defaults (Issue #556)."""
+        csv_content = (
+            "Item Name,Item Code,Selling Price,Current Stock,Tax\n"
+            "Pct A,IMP018,10,,18%\n"
+            "Pct B,IMP019,10,,\n"
+        )
+        res = client.post(
+            "/api/products/import-csv",
+            files={"file": ("test.csv", csv_content.encode("utf-8"), "text/csv")},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["created"] == 2
+        assert data["errors"] == []
+        items = {i["sku"]: i for i in client.get("/api/products/with-inventory?search=Pct").json()["items"]}
+        assert items["IMP018"]["gst_rate"] == 18
+        assert items["IMP019"]["current_stock"] == 0
+        assert items["IMP019"]["gst_rate"] == 0
+
+    def test_import_csv_mixed_rows_partial_failure(self, client):
+        """Rows without errors in the same file still import (Issue #556)."""
+        _create_product(client, "IMP020", "Mixed Keeper", price=10, initial_quantity=4)
+        csv_content = (
+            "Item Name,Item Code,Selling Price,Current Stock\n"
+            "Mixed New,IMP021,10,5\n"
+            "Mixed Keeper,IMP020,12,ten\n"
+        )
+        res = client.post(
+            "/api/products/import-csv",
+            files={"file": ("test.csv", csv_content.encode("utf-8"), "text/csv")},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["created"] == 1
+        assert data["updated"] == 0
+        assert data["errors"] == [{"row": 3, "message": "Invalid Current Stock for IMP020"}]
+        items = {i["sku"]: i for i in client.get("/api/products/with-inventory?search=Mixed").json()["items"]}
+        assert items["IMP021"]["current_stock"] == 5
+        assert items["IMP020"]["current_stock"] == 4
+
 
 class TestProductPurchasePriceAndReorderLevel:
     """Tests for purchase_price and reorder_level fields on products (Issue #385)."""
