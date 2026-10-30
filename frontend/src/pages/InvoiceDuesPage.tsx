@@ -312,7 +312,7 @@ export default function InvoiceDuesPage() {
         )}
       >
         <div className="field">
-          <label htmlFor="dues-sort">Sort invoices</label>
+          <label htmlFor="dues-sort">Sort this page</label>
           <select
             id="dues-sort"
             className="input"
@@ -326,9 +326,6 @@ export default function InvoiceDuesPage() {
             <option value="due-date-asc">Oldest due date first</option>
             <option value="customer-asc">Customer name: A–Z</option>
           </select>
-          <p className="section-copy">
-            Sorting applies only to invoices on the current page.
-          </p>
         </div>
         <div className="field">
           <label htmlFor="dues-search">Search</label>
