@@ -7,6 +7,7 @@ import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
 import type { CompanyAccount, CompanyProfile, Ledger, Payment, PaymentCreate, PaymentUpdate } from '../types/api';
 import formatCurrency, { formatDate } from '../utils/formatting';
+import { toIsoDate } from '../utils/dateRanges';
 import { buildCashBankEditPayload } from '../utils/cashBank';
 import { useFY } from '../context/FYContext';
 import { useEscapeClose } from '../hooks/useEscapeClose';
@@ -15,11 +16,10 @@ import { deepLinkClass, numericParam, useDeepLinkScroll } from '../utils/deepLin
 function defaultDateRange() {
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-  const toIso = (date: Date) => date.toISOString().slice(0, 10);
 
   return {
-    fromDate: toIso(firstDay),
-    toDate: toIso(today),
+    fromDate: toIsoDate(firstDay),
+    toDate: toIsoDate(today),
   };
 }
 
@@ -68,7 +68,7 @@ export default function CashBankPage() {
   const [entryForm, setEntryForm] = useState({
     entryType: 'debit' as 'debit' | 'credit',
     amount: 0,
-    date: new Date().toISOString().slice(0, 10),
+    date: toIsoDate(new Date()),
     description: '',
   });
 
@@ -192,7 +192,7 @@ export default function CashBankPage() {
     setEntryForm({
       entryType: 'debit',
       amount: 0,
-      date: new Date().toISOString().slice(0, 10),
+      date: toIsoDate(new Date()),
       description: '',
     });
   }

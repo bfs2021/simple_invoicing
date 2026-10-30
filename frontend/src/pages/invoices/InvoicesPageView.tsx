@@ -10,6 +10,7 @@ import StatusToasts from '../../components/StatusToasts';
 import ProductCombobox from '../../components/ProductCombobox';
 import LedgerCombobox from '../../components/LedgerCombobox';
 import formatCurrency from '../../utils/formatting';
+import { toIsoDate } from '../../utils/dateRanges';
 import { formatInvoiceTaxBreakdown, isInterstateSupply } from '../../utils/invoiceTax';
 import { createDueDateFormState, formatInvoiceDateLabel, resolveDueDate, type DueDateMode } from '../../utils/invoiceDueDate.ts';
 import { readInvoiceComposerPrefs, updateInvoiceComposerPrefs } from '../../utils/invoiceComposerPrefs.ts';
@@ -58,7 +59,7 @@ export default function InvoicesPage() {
   const [paymentReference, setPaymentReference] = useState('');
   const [selectedPaymentAccountId, setSelectedPaymentAccountId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceDate, setInvoiceDate] = useState(toIsoDate(new Date()));
   const [dueDateMode, setDueDateMode] = useState<DueDateMode>(initialPrefs.dueDateMode);
   const [dueDate, setDueDate] = useState('');
   const [dueDateDays, setDueDateDays] = useState(initialPrefs.dueDateDays);
@@ -584,7 +585,7 @@ export default function InvoicesPage() {
     setScanTargetItemId(null);
     scanTargetRef.current = null;
     setPickerItemId(null);
-    setInvoiceDate(new Date().toISOString().slice(0, 10));
+    setInvoiceDate(toIsoDate(new Date()));
     setDueDateMode(prefs.dueDateMode);
     setDueDate('');
     setDueDateDays(prefs.dueDateDays);
@@ -616,7 +617,7 @@ export default function InvoicesPage() {
     setInvoiceDiscountType((invoice.discount_type as 'percentage' | 'net') || 'percentage');
     setInvoiceDiscountValue(invoice.discount_value != null ? String(invoice.discount_value) : '');
     setSelectedLedgerId(String(invoice.ledger_id));
-    setInvoiceDate(invoice.invoice_date ? invoice.invoice_date.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setInvoiceDate(invoice.invoice_date ? invoice.invoice_date.slice(0, 10) : toIsoDate(new Date()));
     const dueDateState = createDueDateFormState(invoice.due_date);
     setDueDateMode(dueDateState.mode);
     setDueDate(dueDateState.exactDate);
@@ -674,7 +675,7 @@ export default function InvoicesPage() {
     setInvoiceDiscountType((invoice.discount_type as 'percentage' | 'net') || 'percentage');
     setInvoiceDiscountValue(invoice.discount_value != null ? String(invoice.discount_value) : '');
     setSelectedLedgerId(String(invoice.ledger_id));
-    setInvoiceDate(new Date().toISOString().slice(0, 10));
+    setInvoiceDate(toIsoDate(new Date()));
     setDueDateMode('none');
     setDueDate('');
     setDueDateDays('');

@@ -7,6 +7,7 @@ import api, { getApiErrorMessage } from '../api/client';
 import type { InvoiceCreate, Invoice, Ledger, Product } from '../types/api';
 import { useFY } from '../context/FYContext';
 import formatCurrency from '../utils/formatting';
+import { toIsoDate } from '../utils/dateRanges';
 import { formatInvoiceDateLabel, resolveDueDate, type DueDateMode } from '../utils/invoiceDueDate.ts';
 import { formatInvoiceTaxBreakdown, isInterstateSupply } from '../utils/invoiceTax';
 import { invoiceDraftSnapshot } from '../utils/invoiceDraft';
@@ -54,7 +55,7 @@ export default function CreateInvoiceModal({
   const [selectedLedgerId, setSelectedLedgerId] = useState(preselectedLedgerId ? String(preselectedLedgerId) : '');
   const [voucherType, setVoucherType] = useState<'sales' | 'purchase'>(preselectedVoucherType || 'sales');
   const [taxInclusive, setTaxInclusive] = useState(false);
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceDate, setInvoiceDate] = useState(toIsoDate(new Date()));
   const [dueDateMode, setDueDateMode] = useState<DueDateMode>('none');
   const [dueDate, setDueDate] = useState('');
   const [dueDateDays, setDueDateDays] = useState('');
