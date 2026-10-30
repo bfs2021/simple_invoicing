@@ -23,6 +23,21 @@ class LedgerCreate(BaseModel):
     def validate_gst(cls, value: str | None) -> str | None:
         return normalize_gstin(value)
 
+    @field_validator("name", "address")
+    @classmethod
+    def validate_required_text_not_blank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Value must not be blank")
+        return normalized
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_number(cls, value: str) -> str:
+        # Optional today: test_request_schemas_normalize_valid_gstin builds a
+        # LedgerCreate with an empty phone number, so strip without rejecting.
+        return value.strip()
+
 
 class LedgerOut(BaseModel):
     id: int
