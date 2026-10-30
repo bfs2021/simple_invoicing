@@ -5,6 +5,8 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 
+from src.models.product import Product
+
 
 def _create_product(client: TestClient, sku: str, name: str, price: float = 99.0, gst_rate: float = 18.0, maintain_inventory: bool = True, initial_quantity: float = 0) -> dict:
     res = client.post("/api/products/", json={
@@ -123,6 +125,37 @@ class TestProductsWithInventory:
         # Verify via list
         list_res = client.get("/api/products/with-inventory?search=Stock Test")
         assert list_res.json()["items"][0]["current_stock"] == 25
+
+    def test_update_inventory_rejects_negative_stock(self, client):
+        p = _create_product(client, "STK2", "Negative Stock", initial_quantity=10)
+
+        res = client.put(f"/api/products/{p['id']}/with-inventory", json={
+            "current_stock": -1,
+        })
+        assert res.status_code == 422
+
+        list_res = client.get("/api/products/with-inventory?search=Negative Stock")
+        assert list_res.json()["items"][0]["current_stock"] == 10
+
+    def test_update_inventory_accepts_zero_stock(self, client):
+        p = _create_product(client, "STK3", "Zero Stock", initial_quantity=10)
+
+        res = client.put(f"/api/products/{p['id']}/with-inventory", json={
+            "current_stock": 0,
+        })
+        assert res.status_code == 200
+        assert res.json()["current_stock"] == 0
+
+    def test_update_inventory_keeps_serial_tracked_guard(self, client, db_session):
+        p = _create_product(client, "STK4", "Serial Stock", initial_quantity=0)
+        db_session.query(Product).filter(Product.id == p["id"]).update({"track_serials": True})
+        db_session.commit()
+
+        res = client.put(f"/api/products/{p['id']}/with-inventory", json={
+            "current_stock": 5,
+        })
+        assert res.status_code == 400
+        assert "serial-tracked" in res.json()["detail"]
 
     def test_toggle_status(self, client):
         p = _create_product(client, "TOG1", "Toggle Me", maintain_inventory=True, initial_quantity=1)

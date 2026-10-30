@@ -101,10 +101,9 @@ class ProductWithInventoryUpdate(BaseModel):
     category: Optional[str] = None
     purchase_price: Optional[float] = Field(default=None, ge=0)
     selling_price: Optional[float] = Field(default=None, ge=0)
-    # Deliberately unbounded: the with inventory update sets stock
-    # outright, and this issue does not settle whether a negative
-    # stock value is ever legitimate there.
-    current_stock: Optional[float] = None
+    # Bounded like every other way of changing stock: the edit form must
+    # not be a back door to a negative quantity.
+    current_stock: Optional[float] = Field(default=None, ge=0)
     reorder_level: Optional[float] = Field(default=None, ge=0)
     status: Optional[str] = None
     unit: Optional[str] = None
