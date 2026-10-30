@@ -279,3 +279,39 @@ def test_unauthenticated_request_gets_401(db_session):
     finally:
         if saved_override is not None:
             app.dependency_overrides[get_current_user] = saved_override
+
+
+def test_end_date_before_start_date_returns_422(client, db_session):
+    _seed_company(db_session, 1, "Company A")
+
+    payload = _create_payload()
+    payload["end_date"] = "2026-03-31"  # before start_date 2026-04-01
+    response = client.post("/api/financial-years/", json=payload)
+    assert response.status_code == 422, response.text
+
+
+def test_end_date_equal_to_start_date_returns_422(client, db_session):
+    _seed_company(db_session, 1, "Company A")
+
+    payload = _create_payload()
+    payload["end_date"] = payload["start_date"]
+    response = client.post("/api/financial-years/", json=payload)
+    assert response.status_code == 422, response.text
+
+
+def test_blank_and_whitespace_only_label_return_422(client, db_session):
+    _seed_company(db_session, 1, "Company A")
+
+    for label in ["", "   "]:
+        payload = _create_payload(label=label)
+        response = client.post("/api/financial-years/", json=payload)
+        assert response.status_code == 422, response.text
+
+
+def test_label_with_surrounding_spaces_is_saved_stripped(client, db_session):
+    _seed_company(db_session, 1, "Company A")
+
+    payload = _create_payload(label="  2027-28 ")
+    response = client.post("/api/financial-years/", json=payload)
+    assert response.status_code == 201, response.text
+    assert response.json()["label"] == "2027-28"
