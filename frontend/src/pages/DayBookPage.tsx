@@ -60,34 +60,57 @@ export default function DayBookPage() {
 
   const activeCurrencyCode = company?.currency_code || 'USD';
 
-  async function loadDayBook() {
-    try {
-      setLoading(true);
-      setError('');
+  // A period change reruns this effect; the cleanup flips `cancelled` so a
+  // slow response from an older date range can no longer win the race.
+  useEffect(() => {
+    let cancelled = false;
 
-      const [dayBookResponse, companyResponse] = await Promise.all([
-        api.get<DayBook>('/ledgers/day-book', {
+    (async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await api.get<DayBook>('/ledgers/day-book', {
           params: {
             from_date: period.fromDate,
             to_date: period.toDate,
           },
-        }),
-        api.get<CompanyProfile>('/company/'),
-      ]);
+        });
 
-      setDayBook(dayBookResponse.data);
-      setCompany(companyResponse.data);
-    } catch (err) {
-      setDayBook(null);
-      setError(getApiErrorMessage(err, 'Unable to load day book'));
-    } finally {
-      setLoading(false);
-    }
-  }
+        if (cancelled) return;
+        setDayBook(response.data);
+      } catch (err) {
+        if (cancelled) return;
+        setDayBook(null);
+        setError(getApiErrorMessage(err, 'Unable to load day book'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-  useEffect(() => {
-    void loadDayBook();
+    return () => {
+      cancelled = true;
+    };
   }, [period.fromDate, period.toDate]);
+
+  // Company settings never change with the period, so this loads once on
+  // mount instead of riding along with every day book fetch.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await api.get<CompanyProfile>('/company/');
+        if (!cancelled) setCompany(response.data);
+      } catch (err) {
+        if (!cancelled) setError(getApiErrorMessage(err, 'Unable to load company'));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Re-initialise date range when active FY changes
   useEffect(() => {
