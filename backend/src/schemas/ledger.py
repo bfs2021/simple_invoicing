@@ -23,6 +23,14 @@ class LedgerCreate(BaseModel):
     def validate_gst(cls, value: str | None) -> str | None:
         return normalize_gstin(value)
 
+    @field_validator("name", "address", "phone_number")
+    @classmethod
+    def validate_required_text_not_blank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Value must not be blank")
+        return normalized
+
 
 class LedgerOut(BaseModel):
     id: int
