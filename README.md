@@ -211,8 +211,11 @@ Full interactive docs available at `/docs` (Swagger UI) when the backend is runn
 ```bash
 make dev                              # Start dev environment (Docker)
 make prod                             # Start production environment
-make test                             # Run all tests
-make lint                             # Lint backend and frontend
+make test                             # Run the Playwright E2E suite
+make test-unit                        # Run frontend Vitest unit tests (single run)
+make test-backend                     # Run backend pytest suite (needs Postgres)
+make test-all                         # Run test-unit, test-backend and test
+make lint                             # Compile-check backend Python and build frontend
 make migrate                          # Run all pending migrations
 make migrate-status                   # Show migration status
 make migrate-down                     # Roll back last migration
