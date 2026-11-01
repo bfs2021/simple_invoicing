@@ -100,8 +100,8 @@ def create_financial_year(
 
     overlapping = db.query(FinancialYear).filter(
         FinancialYear.company_id == active_company.id,
-        FinancialYear.start_date < payload.end_date,
-        FinancialYear.end_date > payload.start_date,
+        FinancialYear.start_date <= payload.end_date,
+        FinancialYear.end_date >= payload.start_date,
     ).first()
     if overlapping:
         raise HTTPException(

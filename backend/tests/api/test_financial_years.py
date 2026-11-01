@@ -370,6 +370,23 @@ def test_adjacent_years_do_not_count_as_overlapping(client, db_session):
     assert next_year.status_code == 201, next_year.text
 
 
+def test_year_starting_on_the_day_another_ends_returns_409(client, db_session):
+    _seed_company(db_session, 1, "Company A")
+
+    first = client.post("/api/financial-years/", json=_create_payload())
+    assert first.status_code == 201, first.text
+
+    shared_day = client.post(
+        "/api/financial-years/",
+        json={
+            "label": "FY 2027-28",
+            "start_date": "2027-03-31",
+            "end_date": "2028-03-30",
+        },
+    )
+    assert shared_day.status_code == 409, shared_day.text
+
+
 def test_overlapping_year_in_another_company_is_allowed(client, db_session):
     _seed_company(db_session, 1, "Company A")
     _seed_company(db_session, 2, "Company B")
